@@ -1,0 +1,156 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model UserRole {
+  id String @id @default(cuid())
+
+  name String @unique
+
+  label String
+
+  description String?
+
+  priority Int
+
+  permissions Json
+
+  users User[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model LoginHistory {
+  id String @id @default(cuid())
+
+  userId String
+
+  ip String?
+
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  userId String?
+
+  action String
+
+  ip String?
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model CronExecution {
+  id String @id @default(cuid())
+
+  job String
+
+  status String
+
+  durationMs Int?
+
+  error String?
+
+  createdAt DateTime @default(now())
+}
+
+model SystemEvent {
+  id String @id @default(cuid())
+
+  level String
+  source String
+  message String
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id String @id @default(cuid())
+
+  email         String?   @unique
+  emailVerified DateTime?
+
+  verificationToken          String?
+  verificationTokenExpiresAt DateTime?
+  verificationReminderSentAt DateTime?
+
+  resetPasswordToken          String?
+  resetPasswordTokenExpiresAt DateTime?
+
+  username     String? @unique
+  passwordHash String?
+
+  name  String?
+  image String?
+  theme String @default("system")
+  accentColor String @default("blue")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  failedLoginAttempts Int @default(0)
+  lockedUntil DateTime?
+
+  isActive Boolean @default(true)
+  suspendedById String?
+  suspendedAt DateTime?
+  suspendedReason String?
+
+  deletedById String?
+  deletedBy User? @relation("DeletedBy", fields: [deletedById], references: [id])
+  deletedAt DateTime?
+  deletedReason String?
+  scheduledDeletionAt DateTime?
+
+  roleId String?
+  roleRelation UserRole? @relation(fields: [roleId], references: [id])
+
+  accounts  Account[]
+  sessions  Session[]
+  auditLogs AuditLog[]
+  loginHistory LoginHistory[]
+  deletedUsers User[] @relation("DeletedBy")
+}
